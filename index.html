@@ -245,7 +245,7 @@
 
       <div class="ctrl">
         <label>模糊 Blur</label>
-        <div class="sw"><input type="range" id="blur" min="0" max="40" value="5" oninput="slv(this,'blurV','px');applyAndRender()"><span class="sv" id="blurV">5px</span></div>
+        <div class="sw"><input type="range" id="blur" min="0" max="40" value="5" oninput="slv(this,'blurV','');applyAndRender()"><span class="sv" id="blurV">5</span></div>
       </div>
       <div class="ctrl">
         <label>背景暗度 Dim</label>
@@ -257,7 +257,7 @@
       </div>
       <div class="ctrl">
         <label>阴影 Shadow</label>
-        <div class="sw"><input type="range" id="shd" min="0" max="60" value="12" oninput="slv(this,'shdV','px');applyAndRender()"><span class="sv" id="shdV">12px</span></div>
+        <div class="sw"><input type="range" id="shd" min="0" max="60" value="12" oninput="slv(this,'shdV','');applyAndRender()"><span class="sv" id="shdV">12</span></div>
       </div>
 
       <div class="sec">④ 文字</div>
@@ -316,10 +316,10 @@
    (no white border). Front image is full original.
 ═══════════════════════════════════════════════ */
 const FMTS = {
-  mini: { label:'MINI · 23:31', ratio: 46/62,  outW:744,  outH:1000, lockRatio: 46/62  },
-  sq:   { label:'SQ · 1:1',     ratio: 1,       outW:1000, outH:1000, lockRatio: 1      },
-  wide: { label:'WIDE · 99:62', ratio: 99/62,   outW:1000, outH:626,  lockRatio: 99/62  },
-  free: { label:'自由裁剪',      ratio: null,    outW:null, outH:null, lockRatio: null   },
+  mini: { label:'MINI · 23:31', ratio: 46/62,  outW:744,  outH:1000, lockRatio: 46/62,  defFg: 80 },
+  sq:   { label:'SQ · 1:1',     ratio: 1,       outW:1000, outH:1000, lockRatio: 1,      defFg: 80 },
+  wide: { label:'WIDE · 99:62', ratio: 99/62,   outW:1000, outH:626,  lockRatio: 99/62,  defFg: 90 },
+  free: { label:'自由裁剪',      ratio: null,    outW:null, outH:null, lockRatio: null,   defFg: 80 },
 };
 
 let fmt      = 'sq';
@@ -652,6 +652,11 @@ function setFmt(f, btn) {
   document.getElementById('ratioHint').textContent = hints[f];
   document.querySelectorAll('.active-fmt').forEach(b => { b.style.borderColor=''; b.style.color=''; });
   btn.style.borderColor = 'var(--orange)'; btn.style.color = 'var(--orange)';
+
+  const defFg = FMTS[f].defFg;
+  document.getElementById('fgS').value = defFg;
+  document.getElementById('fgV').textContent = defFg + '%';
+
   if (userImg) { resetBox(); drawCrop(); applyAndRender(); }
 }
 
@@ -665,26 +670,40 @@ function applyAndRender() {
 
   const f   = FMTS[fmt];
   const src = boxToSrc();
+  const fgPct  = +document.getElementById('fgS').value  / 100;
 
-  // For free mode, output size = cropped area scaled to max 1200px on longest side
+  // 根据原图大小动态计算输出尺寸，确保原图（前景）不损失清晰度
   let OW, OH;
-  if (f.lockRatio) {
-    OW = f.outW; OH = f.outH;
+  const ratio = f.lockRatio || (src.sw / src.sh);
+  const neededW = userImg.width / fgPct;
+  const neededH = userImg.height / fgPct;
+
+  if (neededW / neededH > ratio) {
+    OW = neededW;
+    OH = neededW / ratio;
   } else {
-    const maxSide = 1200;
-    const scale   = Math.min(maxSide / src.sw, maxSide / src.sh, 1);
-    OW = Math.round(src.sw * scale);
-    OH = Math.round(src.sh * scale);
+    OH = neededH;
+    OW = neededH * ratio;
   }
+
+  // 限制最大边长防止浏览器内存溢出（4096px 对绝大多数场景足够高清）
+  const MAX_SIDE = 4096;
+  if (OW > MAX_SIDE || OH > MAX_SIDE) {
+    const r = Math.min(MAX_SIDE / OW, MAX_SIDE / OH);
+    OW *= r; OH *= r;
+  }
+  OW = Math.round(OW);
+  OH = Math.round(OH);
 
   const cv   = document.getElementById('outCanvas');
   cv.width   = OW; cv.height = OH;
   const ctx  = cv.getContext('2d');
 
-  const blurPx = +document.getElementById('blur').value;
+  // 由于画布变大（以前默认1000px左右），我们需要成比例地放大模糊和阴影等数值
+  const scaleRatio = OW / 1000;
+  const blurPx = +document.getElementById('blur').value * scaleRatio;
   const dimPct = +document.getElementById('dim').value  / 100;
-  const fgPct  = +document.getElementById('fgS').value  / 100;
-  const shPx   = +document.getElementById('shd').value;
+  const shPx   = +document.getElementById('shd').value * scaleRatio;
 
   /* 1 — background: cropped region, fill canvas, blur + dim */
   // Extract crop to an intermediate canvas at output size
@@ -822,7 +841,7 @@ function goBack() {
 function slv(el, lid, unit) { document.getElementById(lid).textContent = el.value + unit; }
 
 function resetAll() {
-  [['blur','blurV',5,'px'],['dim','dimV',95,'%'],['fgS','fgV',80,'%'],['shd','shdV',12,'px'],['txtSp','txtSpV',44,'%'],['lnSp','lnSpV',15,'']].forEach(([id,l,v,u])=>{
+  [['blur','blurV',5,''],['dim','dimV',95,'%'],['fgS','fgV',FMTS[fmt].defFg,'%'],['shd','shdV',12,''],['txtSp','txtSpV',44,'%'],['lnSp','lnSpV',15,'']].forEach(([id,l,v,u])=>{
     document.getElementById(id).value=v; document.getElementById(l).textContent=v+u;
   });
   document.getElementById('cap').value='';
