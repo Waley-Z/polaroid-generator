@@ -754,13 +754,8 @@ if (shPx > 0) {
   document.getElementById('emptyState').style.display = 'none';
   document.getElementById('outWrap').style.display    = 'flex';
 
-  const rp = document.getElementById('rightPanel');
-  const isMobile = window.innerWidth < 800;
-  const availW = rp.clientWidth * (isMobile ? 0.92 : 0.88);
-  const availH = (isMobile ? window.innerHeight * 0.75 : rp.clientHeight) * 0.88;
-  const r  = Math.min(availW/OW, availH/OH, 1);
-  cv.style.width  = (OW*r)+'px';
-  cv.style.height = (OH*r)+'px';
+  cv.style.width  = '';
+  cv.style.height = '';
 }
 
 /* ═══════════════════════════════════════════════
