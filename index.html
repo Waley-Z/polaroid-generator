@@ -245,11 +245,11 @@
 
       <div class="ctrl">
         <label>模糊 Blur</label>
-        <div class="sw"><input type="range" id="blur" min="0" max="40" value="20" oninput="slv(this,'blurV','px');applyAndRender()"><span class="sv" id="blurV">20px</span></div>
+        <div class="sw"><input type="range" id="blur" min="0" max="40" value="5" oninput="slv(this,'blurV','px');applyAndRender()"><span class="sv" id="blurV">5px</span></div>
       </div>
       <div class="ctrl">
         <label>背景暗度 Dim</label>
-        <div class="sw"><input type="range" id="dim" min="10" max="100" value="50" oninput="slv(this,'dimV','%');applyAndRender()"><span class="sv" id="dimV">50%</span></div>
+        <div class="sw"><input type="range" id="dim" min="10" max="100" value="95" oninput="slv(this,'dimV','%');applyAndRender()"><span class="sv" id="dimV">95%</span></div>
       </div>
       <div class="ctrl">
         <label>前景大小 Foreground</label>
@@ -257,7 +257,7 @@
       </div>
       <div class="ctrl">
         <label>阴影 Shadow</label>
-        <div class="sw"><input type="range" id="shd" min="0" max="60" value="24" oninput="slv(this,'shdV','px');applyAndRender()"><span class="sv" id="shdV">24px</span></div>
+        <div class="sw"><input type="range" id="shd" min="0" max="60" value="12" oninput="slv(this,'shdV','px');applyAndRender()"><span class="sv" id="shdV">12px</span></div>
       </div>
 
       <div class="sec">④ 文字</div>
@@ -275,7 +275,7 @@
 
       <div class="tog-row">
         <span class="tog-label">显示日期</span>
-        <label class="tog"><input type="checkbox" id="showDate" onchange="applyAndRender()" checked><div class="tog-track"><div class="tog-thumb"></div></div></label>
+        <label class="tog"><input type="checkbox" id="showDate" onchange="applyAndRender()"><div class="tog-track"><div class="tog-thumb"></div></div></label>
       </div>
       <div id="dateInputWrap" style="padding:0 18px 10px;flex-shrink:0;">
         <input type="text" id="dateText"
@@ -324,6 +324,7 @@ const FMTS = {
 
 let fmt      = 'sq';
 let userImg  = null;   // HTMLImageElement — full original
+let originalFileName = 'image';
 
 /* Box in CROP CANVAS display coordinates */
 let box = { x:0, y:0, w:0, h:0 };   // the selection rectangle
@@ -779,6 +780,7 @@ lp.addEventListener('drop',e=>{
 });
 
 function load(file) {
+  originalFileName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
   const r = new FileReader();
   r.onload = ev => {
     const img = new Image();
@@ -820,11 +822,11 @@ function goBack() {
 function slv(el, lid, unit) { document.getElementById(lid).textContent = el.value + unit; }
 
 function resetAll() {
-  [['blur','blurV',20,'px'],['dim','dimV',50,'%'],['fgS','fgV',80,'%'],['shd','shdV',24,'px'],['txtSp','txtSpV',44,'%'],['lnSp','lnSpV',15,'']].forEach(([id,l,v,u])=>{
+  [['blur','blurV',5,'px'],['dim','dimV',95,'%'],['fgS','fgV',80,'%'],['shd','shdV',12,'px'],['txtSp','txtSpV',44,'%'],['lnSp','lnSpV',15,'']].forEach(([id,l,v,u])=>{
     document.getElementById(id).value=v; document.getElementById(l).textContent=v+u;
   });
   document.getElementById('cap').value='';
-  document.getElementById('showDate').checked=true;
+  document.getElementById('showDate').checked=false;
   const now = new Date();
   document.getElementById('dateText').value = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')}`;
   resetBox(); drawCrop(); applyAndRender();
@@ -832,7 +834,7 @@ function resetAll() {
 
 function dlImg() {
   const cv = document.getElementById('outCanvas');
-  const filename = `instaframe_${fmt}_${new Date().toISOString().slice(0,10)}.png`;
+  const filename = `${originalFileName}_instaframe_${fmt}.png`;
 
   // Primary: toBlob → object URL (works even in restricted iframes)
   if (cv.toBlob) {
