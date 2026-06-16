@@ -706,14 +706,14 @@ function applyAndRender() {
   const fgX   = (OW - fgW) / 2;
   const fgY   = (OH - fgH) / 2;
 
-  if (shPx > 0) {
+if (shPx > 0) {
     ctx.save();
     ctx.shadowColor = 'rgba(0,0,0,.82)'; ctx.shadowBlur = shPx; ctx.shadowOffsetY = shPx*.35;
-    ctx.fillStyle = '#fff'; ctx.fillRect(fgX, fgY, fgW, fgH);
+    ctx.drawImage(userImg, fgX, fgY, fgW, fgH);
     ctx.restore();
+  } else {
+    ctx.drawImage(userImg, fgX, fgY, fgW, fgH);
   }
-
-  ctx.drawImage(userImg, fgX, fgY, fgW, fgH);
 
   /* 3 — caption / date */
   const caption  = document.getElementById('cap').value.trim();
